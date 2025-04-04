@@ -1,27 +1,16 @@
-pipeline {
-    agent any
-    environment {
-        // Update these values with your Docker Hub info
-        DOCKER_IMAGE = "filipjovanovski1/blue-ocean-image"
-        DOCKER_TAG = "latest"
+node {
+    def app
+    stage('Clone repository') {
+        checkout scm
     }
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t filipjovanovski1/blue-ocean-image:latest .'
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                withDockerRegistry([credentialsId: 'dockerhub', url: '']) {
-                    sh 'docker push filipjovanovski1/blue-ocean-image:latest'
-                }
-            }
+    stage('Build image') {
+       app = docker.build("filipjovanovski1/kiii-jenkins")
+    }
+    stage('Push image') {   
+        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+            app.push("${env.BRANCH_NAME}-${env.BUILD_NUMBER}")
+            app.push("${env.BRANCH_NAME}-latest")
+            // signal the orchestrator that there is a new version
         }
     }
 }
